@@ -1,0 +1,56 @@
+{
+  "n_tracks": 1066,
+  "best_predictor_raw": "cum_strain",
+  "best_predictor_norm": "cum_strain",
+  "r_vals_raw": {
+    "alpha_mean": -0.06160448873822496,
+    "alpha_max": 0.37795007300261774,
+    "stretch_mean": -0.11547630669255922,
+    "helicity_abs": 0.11990692371859582,
+    "cum_strain": 0.9784314327447535,
+    "gamma_mean": 0.40792118836059593
+  },
+  "r_vals_norm": {
+    "alpha_mean": 0.0026090590129634,
+    "alpha_max": 0.4789839064587348,
+    "stretch_mean": -0.14028331849536838,
+    "helicity_abs": 0.1913712383381238,
+    "cum_strain": 0.8839263826729754,
+    "gamma_mean": 0.6669068756145927
+  },
+  "r_stretch_gamma": -0.04418938303187181,
+  "pos_stretch_frac": 0.450281425891182,
+  "mean_stretch": 0.04187238174301059,
+  "r_hel_life": 0.11990692371859582,
+  "r_hel_life_norm": 0.1913712383381238,
+  "ks_helicity_p": 0.0001983502268356757,
+  "high_hel_life_norm": 25823.05450751446,
+  "low_hel_life_norm": 19758.56030803542,
+  "threshold_sensitivity": {
+    "0.5": {
+      "n_vortices": 169,
+      "vol_fraction": 0.04501056671142578,
+      "threshold": 19.531105041503906
+    },
+    "1.0": {
+      "n_vortices": 139,
+      "vol_fraction": 0.02439403533935547,
+      "threshold": 27.58477020263672
+    },
+    "1.5": {
+      "n_vortices": 109,
+      "vol_fraction": 0.014248847961425781,
+      "threshold": 35.63843536376953
+    },
+    "2.0": {
+      "n_vortices": 73,
+      "vol_fraction": 0.009256362915039062,
+      "threshold": 43.692100524902344
+    },
+    "2.5": {
+      "n_vortices": 48,
+      "vol_fraction": 0.006588459014892578,
+      "threshold": 51.745765686035156
+    }
+  }
+}
