@@ -1,0 +1,1 @@
+ls -lh /home/node/work/projects/ns_turbulence_vortex/data/Turb.hydro_w.18903.vtk && head -n 20 /home/node/work/projects/ns_turbulence_vortex/data/Turb.hydro_w.18903.vtk

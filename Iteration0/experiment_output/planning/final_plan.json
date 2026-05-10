@@ -1,0 +1,87 @@
+{
+    "sub_tasks": [
+        {
+            "sub_task": "Vortex identification across 200 snapshots",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 600,
+            "bullet_points": [
+                "Set DATA_PATH = '/home/node/work/projects/ns_turbulence_vortex/data'. Select every 5th VTK file: files = sorted(glob.glob(DATA_PATH + '/Turb.hydro_w.*.vtk'))[::5]. Print len(files) to confirm ~200 files.",
+                "Define a process_snapshot(fpath) function: (1) read with pyvista, reshape all velocity fields to (128,128,128); (2) compute velocity gradient tensor with np.gradient(v, dx=1/128, axis=i) for all 9 components; (3) compute Q = 0.5*(|Omega|^2 - |S|^2) where Omega is antisymmetric and S is symmetric part; (4) compute omega_mag = sqrt(omega_x^2+omega_y^2+omega_z^2); (5) threshold Q > mean(Q[Q>0]) + 1.5*std(Q[Q>0]); (6) pad with wrap, scipy.ndimage.label, unpad; (7) for each label with >=8 voxels, compute vorticity-weighted centroid using complex exponential trick for periodic BC; (8) return list of dicts with x,y,z,size,omega_tot,omega_max.",
+                "Run process_snapshot in parallel using multiprocessing.Pool(8) over all 200 files. Print progress every 25 files. Print total time elapsed.",
+                "Print summary: min/max/mean vortices per snapshot, total vortex observations.",
+                "Save: all_vortices list (200 elements), sim_times array, file_indices array. Use np.save with allow_pickle=True for the list of lists."
+            ]
+        },
+        {
+            "sub_task": "Vortex trajectory tracking and unwrapping",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "Load all_vortices and sim_times from previous step. Compute dt_snap = sim_times[1]-sim_times[0].",
+                "Implement greedy nearest-neighbour tracking: for each consecutive pair of snapshots, match vortex centroids using periodic minimum-image distance. Max matching distance = 0.10. Build trajectories dict: track_id -> list of dicts with t,x,y,z,size,omega_tot.",
+                "After tracking: keep only trajectories with >=5 points (long_tracks). Print: total trajectories formed, long_tracks count, track length stats (min/max/mean/median).",
+                "For each long_track, unwrap coordinates: for each consecutive pair (x[k], x[k-1]), if |x[k]-x[k-1]| > 0.5 correct by +-1.0. Do this separately for x, y, z. Store unwrapped arrays in unwrapped_trajs dict.",
+                "Save trajectories.npy (array with columns: tid, t, x, y, z, size, omega_tot) and unwrapped_trajs as pickle. Print save confirmation."
+            ]
+        },
+        {
+            "sub_task": "Displacement statistics and MSD analysis",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "Compute step displacements for all long_tracks: dxs=np.diff(xs), dys=np.diff(ys), dzs=np.diff(zs), drs=sqrt(dxs^2+dys^2+dzs^2). Collect all into flat arrays step_dx, step_dy, step_dz, step_dr.",
+                "Print: len(step_dr), mean/std/max of |dr|, kurtosis of dx (scipy.stats.kurtosis, fisher=False). KS test of dx vs Gaussian.",
+                "Fit Levy stable distribution to step_dx using scipy.stats.levy_stable.fit(data, floc=median). Print: alpha_levy, scale_levy. If fit fails, print the error.",
+                "MSD: for lag in 1..min(50, max_traj_len//2): compute dr^2 = (x[lag:]-x[:-lag])^2 + ... over all trajectories. Average. msd_mean[lag-1] = mean(dr^2). Fit log(MSD) ~ 2H*log(tau) + const. Print: slope 2H, H, R^2. Also fit short-lag (tau<=5) separately.",
+                "Save: step arrays, msd.npy (lag_times vs msd_mean), fit results JSON."
+            ]
+        },
+        {
+            "sub_task": "Pairwise distances, RDF, and clustering analysis",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "Build time_to_vorts: dict mapping snapshot index -> {track_id: vortex_dict} for all long_tracks.",
+                "For each snapshot with >=2 vortices, compute all pairwise periodic distances. Accumulate pair_dist_all array.",
+                "Compute radial distribution function g(r): histogram pair distances into 50 bins in [0, 0.5]. Normalize by shell volume * mean_density * n_pairs_expected. Print: g(r) peak location and height, exclusion zone (r where g<0.5).",
+                "Compute spatial correlation: is g(r) > 1 for some r (clustering) or g(r) < 1 (exclusion)? Print verdict.",
+                "Save: pair_dist_all.npy, rdf.npy (r_mid vs g_r). Print pair count and key g(r) statistics."
+            ]
+        },
+        {
+            "sub_task": "Effective force law and interaction potential",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "For each tracked vortex with >=3 points: compute velocity vx=gradient(xs,ts), vy=gradient(ys,ts), vz=gradient(zs,ts) and acceleration ax=gradient(vx,ts), ay=gradient(vy,ts), az=gradient(vz,ts). a_mag = sqrt(ax^2+ay^2+az^2).",
+                "For each point in each trajectory: find nearest other tracked vortex at same time step. Record: (r_nearest, a_mag, omega_tot, omega_nearest, size).",
+                "Bin by r_nearest (20 bins in [0.02, 0.45]). Compute median(a_mag) per bin. Fit log(|F|) ~ n*log(r) + const using linregress. Print: slope n, intercept, R^2. Print interpretation: |F|~r^n implies V(r)~r^(n+1)/(n+1) for n!=-1, or log(r) for n=-1.",
+                "Fit 3 candidate models to raw (r, a_mag) data using scipy.optimize.curve_fit: (1) power_law A*r^(-n) p0=[0.001,1.5]; (2) screened A*exp(-r/lam)/r p0=[0.001,0.1]; (3) yukawa A*exp(-r/lam)/r^2 p0=[0.001,0.1]. Compute AIC = 2k - 2*log(L) for each. Print: best model by AIC, all model parameters and R^2.",
+                "Save: accel_data.npy, force_vs_r.npy, model_comparison.json."
+            ]
+        },
+        {
+            "sub_task": "Vortex lifetime, size-circulation scaling, and energy spectrum",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "Lifetime distribution: compute lifetimes = [len(traj)*dt_snap for traj in long_tracks]. Fit exponential (scipy.stats.expon.fit). Compute KS test. Also test power law (scipy.stats.pareto.fit). Print: mean lifetime, exp_scale, KS statistics for both. AIC comparison.",
+                "Size-circulation scaling: collect all_sizes and all_omegas from all_vortices (all snapshots, all vortices). Filter size>=4. Log-log regression: log(omega_tot) ~ beta*log(size) + const. Print: beta, R^2. Also: CCDF of sizes, fit power law exponent.",
+                "Energy spectrum: load middle snapshot (files[100]), compute 3D FFT of vx,vy,vz. Shell-average E(k) = 0.5*(|vx_k|^2+|vy_k|^2+|vz_k|^2)/(N^3)^2. Fit E(k) ~ k^s in inertial range k=4..20. Print: slope s, R^2, vs K41=-5/3.",
+                "Strain-to-rotation ratio (Lagrangian deformation): for each vortex at each time step, extract volume-averaged |S|/|Omega| over its labeled region. Correlate alpha_deformation with vortex lifetime (longer lifetime = lower deformation?). Print: Pearson r between mean_alpha and lifetime.",
+                "Save: lifetimes.npy, size_omega_scaling.json, energy_spectrum.npy, deformation_vs_lifetime.json."
+            ]
+        },
+        {
+            "sub_task": "Generate all plots and summary report",
+            "sub_task_agent": "engineer",
+            "code_execution_timeout": 300,
+            "bullet_points": [
+                "Generate and save the following plots (all to experiment_output/control/data/): fig01_vortex_count.png (vortex count vs time), fig02_displacement_pdf.png (step PDF vs Gaussian+Levy, log-y), fig03_msd.png (MSD log-log with power-law fit), fig04_rdf.png (g(r) with g=1 reference), fig05_energy_spectrum.png (E(k) log-log with K41 line), fig06_lifetimes.png (lifetime histogram + exp fit), fig07_force_vs_r.png (|a| vs r log-log with power-law fit and model overlays), fig08_size_scaling.png (omega_tot vs size log-log), fig09_trajectories.png (top 20 longest tracks in xy,xz,yz projections), fig10_vorticity_slice.png (|omega| and Q mid-plane slice with vortex centroids overlaid), fig11_rdf_clustering.png (pair distance histogram + g(r) with clustering annotation), fig12_deformation.png (strain-rotation ratio alpha along 5 representative trajectories).",
+                "For each plot: use matplotlib.use('Agg'), save at dpi=150. Include axis labels, titles, legends. For log-log plots include grid(True, which='both').",
+                "Write a comprehensive results.md report to experiment_output/control/data/results.md containing: (1) Dataset summary (200 snapshots, time range, mean vortices/snap); (2) all quantitative results with values (kurtosis, Levy alpha, MSD exponent H, g(r) peak, force law exponent, best interaction model with parameters, size-circulation exponent, lifetime mean, energy spectrum slope); (3) interpretation of each finding; (4) effective theory statement: what is the interaction potential V(r)?; (5) table of all results. Use markdown with headers and tables.",
+                "Print: ALL PLOTS SAVED. ALL ANALYSIS COMPLETE. Print the path to results.md."
+            ]
+        }
+    ]
+}
